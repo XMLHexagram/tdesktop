@@ -551,7 +551,11 @@ void Instance::Private::badConfigurationError() {
 }
 
 void Instance::Private::syncHttpUnixtime() {
-	if (base::unixtime::http_valid() || _httpUnixtimeLoader) {
+	// SpecialConfigRequest reaches Telegram's own resolvers over HTTP, which a
+	// custom backend has no part in.
+	if (CustomDcConfigData()
+		|| base::unixtime::http_valid()
+		|| _httpUnixtimeLoader) {
 		return;
 	}
 	_httpUnixtimeLoader = std::make_unique<SpecialConfigRequest>([=] {

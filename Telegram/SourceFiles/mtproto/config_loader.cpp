@@ -10,6 +10,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "base/random.h"
 #include "mtproto/special_config_request.h"
 #include "mtproto/facade.h"
+#include "mtproto/mtproto_custom_dc_config.h"
 #include "mtproto/mtproto_dc_options.h"
 #include "mtproto/mtproto_config.h"
 #include "mtproto/mtp_instance.h"
@@ -116,7 +117,12 @@ void ConfigLoader::enumerate() {
 }
 
 void ConfigLoader::refreshSpecialLoader() {
-	if (_proxyEnabled || _instance->isKeysDestroyer()) {
+	// A custom backend ships its endpoints in the baked-in config. Telegram's
+	// fallback resolvers only ever hand out Telegram addresses, so asking them
+	// would just walk us onto a foreign network.
+	if (CustomDcConfigData()
+		|| _proxyEnabled
+		|| _instance->isKeysDestroyer()) {
 		_specialLoader.reset();
 		return;
 	}
