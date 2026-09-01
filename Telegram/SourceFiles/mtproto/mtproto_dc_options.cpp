@@ -702,6 +702,7 @@ auto DcOptions::lookup(
 		bool throughProxy) const -> Variants {
 	using Flag = Flag;
 	auto result = Variants();
+	const auto custom = (CustomDcConfigData() != nullptr);
 
 	ReadLocker lock(this);
 	const auto i = _data.find(dcId);
@@ -722,7 +723,11 @@ auto DcOptions::lookup(
 			? Variants::IPv6
 			: Variants::IPv4;
 		result.data[address][Variants::Tcp].push_back(endpoint);
-		if (!(flags & (Flag::f_tcpo_only | Flag::f_secret))) {
+		// The HTTP transport ignores the endpoint's port and always dials 80
+		// (see kForceHttpPort), which is where Telegram serves it. A custom
+		// backend publishes the only ports it listens on, so racing an HTTP
+		// connection would dial an address it never offered.
+		if (!custom && !(flags & (Flag::f_tcpo_only | Flag::f_secret))) {
 			result.data[address][Variants::Http].push_back(endpoint);
 		}
 	}
