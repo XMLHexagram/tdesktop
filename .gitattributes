@@ -7,3 +7,13 @@
 
 # Ensure lottie animations are treated as binary files
 *.lottie binary
+
+# Domain substitution filter: stored as "t.me", working tree shows the domain
+# in .telegram-domain. Run scripts/setup-domain-filter.sh once per clone to
+# activate; without it the working tree simply keeps the stored "t.me".
+Telegram/SourceFiles/**/*.cpp filter=telegram-domain
+Telegram/SourceFiles/**/*.h filter=telegram-domain
+# Localized strings also carry the host unquoted mid-sentence ("Public links
+# such as t.me/title"), which the source driver's quote/"//" anchoring skips,
+# so they use the unanchored driver.
+Telegram/Resources/langs/*.strings filter=telegram-domain-strings
