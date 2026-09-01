@@ -213,19 +213,17 @@ void DoneSetReminder(std::shared_ptr<ChatHelpers::Show> show) {
 } // namespace
 
 bool UrlRequiresConfirmation(const QUrl &url) {
-	using namespace qthelp;
-
-	return !regex_match(
-		"(^|\\.)("
-		"telegram\\.(org|me|dog)"
-		"|t\\.me"
-		"|te\\.?legra\\.ph"
-		"|graph\\.org"
-		"|fragment\\.com"
-		"|telesco\\.pe"
-		")$",
-		url.host(),
-		RegExOption::CaseInsensitive);
+	const auto host = url.host().toLower();
+	const auto ours = {
+		u"t.me"_q,
+		u"just.pub"_q,
+	};
+	for (const auto &base : ours) {
+		if ((host == base) || host.endsWith('.' + base)) {
+			return false;
+		}
+	}
+	return true;
 }
 
 QString HiddenUrlClickHandler::copyToClipboardText() const {
