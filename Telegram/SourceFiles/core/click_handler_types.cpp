@@ -75,12 +75,9 @@ constexpr auto kReminderSetToastDuration = 4 * crl::time(1000);
 }
 
 [[nodiscard]] bool IsTelegramShortLinkHost(const QUrl &url) {
-	using namespace qthelp;
-
-	return regex_match(
-		"(^|\\.)(telegram\\.(me|dog)|t\\.me)$",
-		url.host(),
-		RegExOption::CaseInsensitive).valid();
+	const auto host = url.host().toLower();
+	const auto base = u"t.me"_q;
+	return (host == base) || host.endsWith('.' + base);
 }
 
 [[nodiscard]] bool HiddenUrlRequiresConfirmation(const QUrl &url) {
@@ -89,7 +86,7 @@ constexpr auto kReminderSetToastDuration = 4 * crl::time(1000);
 
 [[nodiscard]] bool RequiresConfirmationAfterIvFallback(const QUrl &url) {
 	const auto host = url.host().toLower();
-	return (host == u"telegra.ph"_q) || (host == u"te.legra.ph"_q);
+	return (host == u"just.pub"_q);
 }
 
 // Possible context owners: media viewer, profile, history widget.
