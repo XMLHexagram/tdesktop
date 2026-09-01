@@ -4,7 +4,7 @@
 官方文档假设的是较旧的 Xcode 和干净的 Homebrew 环境，在 Xcode 27 / macOS 27 SDK 下会有三处必须修的地方。
 
 实测环境：macOS 27.0（arm64）、Xcode 27.0 Beta 5（唯一安装的 Xcode）、Homebrew、16 核 / 64G。
-产物：`out/Debug/Telegram.app`，arm64，`minos 12.0`、`sdk 27.0`，可正常启动。
+产物：`out/Debug/Blah Desktop.app`，arm64，`minos 12.0`、`sdk 27.0`，可正常启动。
 
 ## 目录布局
 
@@ -51,10 +51,10 @@ Telegram/configure.sh \
 cmake --build out --config Debug --target Telegram
 ```
 
-产物在 `out/Debug/Telegram.app`。用隔离的数据目录试跑：
+产物在 `out/Debug/Blah Desktop.app`。用隔离的数据目录试跑：
 
 ```bash
-out/Debug/Telegram.app/Contents/MacOS/Telegram -workdir /tmp/tg-scratch
+"out/Debug/Blah Desktop.app/Contents/MacOS/Blah Desktop" -workdir /tmp/tg-scratch
 ```
 
 ### 关于各个参数

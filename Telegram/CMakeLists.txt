@@ -2355,7 +2355,7 @@ endif()
 if (build_macstore)
     set(bundle_identifier "ing.blah.TBlah")
     set(bundle_entitlements "Telegram Lite.entitlements")
-    set(output_name "Telegram Lite")
+    set(output_name "Blah Desktop Lite")
     target_link_options(Telegram
     PRIVATE
         -F${libs_loc}/breakpad/src/client/mac/build/Release
@@ -2376,7 +2376,7 @@ else()
         set(bundle_identifier "ing.blah.TBlah")
     endif()
     set(bundle_entitlements "Telegram.entitlements")
-    set(output_name "Telegram")
+    set(output_name "Blah Desktop")
 endif()
 
 if (CMAKE_GENERATOR STREQUAL Xcode)
