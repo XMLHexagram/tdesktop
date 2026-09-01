@@ -2350,10 +2350,16 @@ else()
     generate_dbus(Telegram org.freedesktop. XdgNotifications ${src_loc}/platform/linux/org.freedesktop.Notifications.xml)
 endif()
 
+# The desktop app has its own App Store Connect record, separate from the iOS
+# app's ing.blah.TBlah. Signing team is left empty so Xcode can pick it up from
+# the signed-in account; set it to sign from the command line.
+set(blah_desktop_bundle_id "ing.blah.TBlahDesktop" CACHE STRING "Bundle identifier for Blah Desktop")
+set(blah_desktop_team_id "" CACHE STRING "Apple Developer team id used for signing")
+
 if (build_macstore)
-    set(bundle_identifier "ing.blah.TBlah")
+    set(bundle_identifier "${blah_desktop_bundle_id}")
     set(bundle_entitlements "Telegram Lite.entitlements")
-    set(output_name "Blah Desktop Lite")
+    set(output_name "Blah Desktop")
     target_link_options(Telegram
     PRIVATE
         -F${libs_loc}/breakpad/src/client/mac/build/Release
@@ -2369,9 +2375,9 @@ if (build_macstore)
     )
 else()
     if (CMAKE_GENERATOR STREQUAL Xcode)
-        set(bundle_identifier "ing.blah.TBlah$<$<CONFIG:Debug>:Debug>")
+        set(bundle_identifier "${blah_desktop_bundle_id}$<$<CONFIG:Debug>:Debug>")
     else()
-        set(bundle_identifier "ing.blah.TBlah")
+        set(bundle_identifier "${blah_desktop_bundle_id}")
     endif()
     set(bundle_entitlements "Telegram.entitlements")
     set(output_name "Blah Desktop")
@@ -2389,9 +2395,15 @@ set_target_properties(Telegram PROPERTIES
     MACOSX_BUNDLE_INFO_PLIST ${CMAKE_CURRENT_SOURCE_DIR}/Telegram.plist
     XCODE_ATTRIBUTE_CODE_SIGN_ENTITLEMENTS "${CMAKE_CURRENT_SOURCE_DIR}/Telegram/${bundle_entitlements}"
     XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER ${bundle_identifier}
+    XCODE_ATTRIBUTE_DEVELOPMENT_TEAM "${blah_desktop_team_id}"
     XCODE_ATTRIBUTE_CURRENT_PROJECT_VERSION ${desktop_app_version_string}
     XCODE_ATTRIBUTE_PRODUCT_NAME ${output_name}
     XCODE_ATTRIBUTE_ASSETCATALOG_COMPILER_APPICON_NAME Icon
+    # Without an install path the Archive action leaves Products/Applications
+    # empty, Xcode files the result as a generic archive and Distribute App
+    # stops offering App Store Connect.
+    XCODE_ATTRIBUTE_INSTALL_PATH "/Applications"
+    XCODE_ATTRIBUTE_SKIP_INSTALL NO
     XCODE_ATTRIBUTE_ENABLE_HARDENED_RUNTIME YES
     XCODE_ATTRIBUTE_COMBINE_HIDPI_IMAGES YES
     XCODE_ATTRIBUTE_COPY_PHASE_STRIP NO
@@ -2399,6 +2411,9 @@ set_target_properties(Telegram PROPERTIES
     XCODE_ATTRIBUTE_CLANG_CXX_LIBRARY libc++
     XCODE_ATTRIBUTE_OTHER_CODE_SIGN_FLAGS --deep
     XCODE_ATTRIBUTE_CLANG_DEBUG_INFORMATION_LEVEL $<IF:$<CONFIG:Debug>,default,line-tables-only>
+    # Archive drops symbols from the binary, so without a dSYM alongside it
+    # the crash reports App Store Connect collects cannot be symbolicated.
+    XCODE_ATTRIBUTE_DEBUG_INFORMATION_FORMAT "dwarf-with-dsym"
 )
 set(entitlement_sources
     "${CMAKE_CURRENT_SOURCE_DIR}/Telegram/Telegram.entitlements"
