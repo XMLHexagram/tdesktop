@@ -41,6 +41,7 @@ PRIVATE
     mtproto/mtproto_concurrent_sender.h
     mtproto/mtproto_config.cpp
     mtproto/mtproto_config.h
+    mtproto/mtproto_custom_dc_config.h
     mtproto/mtproto_dc_options.cpp
     mtproto/mtproto_dc_options.h
     mtproto/mtproto_dh_utils.cpp
@@ -51,6 +52,39 @@ PRIVATE
     mtproto/mtproto_response.cpp
     mtproto/mtproto_response.h
 )
+
+# The custom DC configuration is fetched from the backend at configure time and
+# baked into a generated translation unit, so the runtime does no parsing.
+# The endpoint lives in build/blah-server.config.url; when that file is removed
+# the generator emits a null config and the build targets standard Telegram.
+set(custom_dc_config_script ${CMAKE_CURRENT_SOURCE_DIR}/build/custom_dc_config.py)
+set(custom_dc_config_url_file ${CMAKE_CURRENT_SOURCE_DIR}/build/blah-server.config.url)
+set(custom_dc_config_gen_file
+    ${CMAKE_CURRENT_BINARY_DIR}/gen/mtproto_custom_dc_config_generated.cpp)
+
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+    ${custom_dc_config_script}
+    ${custom_dc_config_url_file}
+)
+
+find_package(Python3 QUIET COMPONENTS Interpreter)
+if (NOT Python3_EXECUTABLE)
+    message(FATAL_ERROR "Python 3 is required to generate the custom DC config.")
+endif()
+
+execute_process(
+    COMMAND ${Python3_EXECUTABLE} ${custom_dc_config_script}
+        --url-file ${custom_dc_config_url_file}
+        --output ${custom_dc_config_gen_file}
+    RESULT_VARIABLE custom_dc_config_result
+    ERROR_VARIABLE custom_dc_config_error
+)
+if (NOT custom_dc_config_result EQUAL 0)
+    message(FATAL_ERROR
+        "Failed to generate the custom DC config.\n${custom_dc_config_error}")
+endif()
+
+target_sources(td_mtproto PRIVATE ${custom_dc_config_gen_file})
 
 target_include_directories(td_mtproto
 PUBLIC

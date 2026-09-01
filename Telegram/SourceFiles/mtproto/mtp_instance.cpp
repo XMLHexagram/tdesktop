@@ -12,6 +12,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "mtproto/special_config_request.h"
 #include "mtproto/session.h"
 #include "mtproto/mtproto_config.h"
+#include "mtproto/mtproto_custom_dc_config.h"
 #include "mtproto/mtproto_dc_options.h"
 #include "mtproto/config_loader.h"
 #include "mtproto/sender.h"
@@ -36,6 +37,15 @@ constexpr auto kConfigBecomesOldForBlockedIn = 8 * crl::time(1000);
 using namespace details;
 
 std::atomic<int> GlobalAtomicRequestId = 0;
+
+// A custom backend names the datacenter a fresh account starts from; without
+// one we keep Telegram's convention.
+[[nodiscard]] DcId DefaultMainDcId() {
+	if (const auto custom = CustomDcConfigData()) {
+		return custom->defaultDcId;
+	}
+	return Instance::Fields::kDefaultMainDc;
+}
 
 } // namespace
 
@@ -233,7 +243,7 @@ private:
 	mutable QMutex _deviceModelMutex;
 	QString _customDeviceModel;
 
-	rpl::variable<DcId> _mainDcId = Fields::kDefaultMainDc;
+	rpl::variable<DcId> _mainDcId = DefaultMainDcId();
 	bool _mainDcIdForced = false;
 	base::flat_map<DcId, std::unique_ptr<Dcenter>> _dcenters;
 	std::vector<std::unique_ptr<Dcenter>> _dcentersToDestroy;

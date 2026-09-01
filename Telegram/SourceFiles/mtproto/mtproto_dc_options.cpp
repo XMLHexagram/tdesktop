@@ -10,6 +10,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "mtproto/details/mtproto_rsa_public_key.h"
 #include "mtproto/facade.h"
 #include "mtproto/connection_tcp.h"
+#include "mtproto/mtproto_custom_dc_config.h"
 #include "storage/serialize_common.h"
 
 #include <QtCore/QFile>
@@ -140,10 +141,7 @@ bool DcOptions::ValidateSecret(bytes::const_span secret) {
 }
 
 void DcOptions::readBuiltInPublicKeys() {
-	const auto builtin = (_environment == Environment::Test)
-		? gsl::make_span(kTestPublicRSAKeys)
-		: gsl::make_span(kPublicRSAKeys);
-	for (const auto key : builtin) {
+	const auto add = [&](const char *key) {
 		const auto keyBytes = bytes::make_span(key, strlen(key));
 		auto parsed = RSAPublicKey(keyBytes);
 		if (parsed.valid()) {
@@ -152,6 +150,18 @@ void DcOptions::readBuiltInPublicKeys() {
 			LOG(("MTP Error: could not read this public RSA key:"));
 			LOG((key));
 		}
+	};
+	if (const auto custom = CustomDcConfigData()) {
+		for (auto i = 0; i != custom->dcCount; ++i) {
+			add(custom->dcs[i].rsaPublicKeyPem);
+		}
+		return;
+	}
+	const auto builtin = (_environment == Environment::Test)
+		? gsl::make_span(kTestPublicRSAKeys)
+		: gsl::make_span(kPublicRSAKeys);
+	for (const auto key : builtin) {
+		add(key);
 	}
 }
 
@@ -168,6 +178,32 @@ void DcOptions::constructFromBuiltIn() {
 	_data.clear();
 
 	readBuiltInPublicKeys();
+
+	// A custom backend replaces the built-in Telegram datacenters outright:
+	// its endpoints are the only ones we ever dial, in both environments.
+	if (const auto custom = CustomDcConfigData()) {
+		for (auto i = 0; i != custom->dcCount; ++i) {
+			const auto &dc = custom->dcs[i];
+			for (auto j = 0; j != dc.endpointCount; ++j) {
+				const auto &endpoint = dc.endpoints[j];
+				const auto flags = endpoint.ipv6
+					? (Flag::f_static | Flag::f_ipv6)
+					: (Flag::f_static | 0);
+				applyOneGuarded(
+					dc.id,
+					flags,
+					endpoint.ip,
+					endpoint.port,
+					{});
+				DEBUG_LOG(("MTP Info: adding custom DC %1 connect option: "
+					"%2:%3"
+					).arg(dc.id
+					).arg(endpoint.ip
+					).arg(endpoint.port));
+			}
+		}
+		return;
+	}
 
 	const auto list = isTestMode()
 		? gsl::make_span(kBuiltInDcsTest)
