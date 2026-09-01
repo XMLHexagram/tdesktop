@@ -7,12 +7,12 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "intro/intro_widget.h"
 
-#include "intro/intro_start.h"
 #include "intro/intro_phone.h"
 #include "intro/intro_qr.h"
 #include "intro/intro_code.h"
 #include "intro/intro_signup.h"
 #include "intro/intro_password_check.h"
+#include "mtproto/mtproto_custom_dc_config.h"
 #include "lang/lang_keys.h"
 #include "lang/lang_instance.h"
 #include "lang/lang_cloud_manager.h"
@@ -110,7 +110,7 @@ Widget::Widget(
 	switch (point) {
 	case EnterPoint::Start:
 		getNearestDC();
-		appendStep(new StartWidget(this, _account, getData()));
+		appendStep(new QrWidget(this, _account, getData()));
 		break;
 	case EnterPoint::Phone:
 		appendStep(new PhoneWidget(this, _account, getData()));
@@ -648,7 +648,13 @@ void Widget::getNearestDC() {
 			).arg(qs(nearest.vcountry())
 			).arg(nearest.vnearest_dc().v
 			).arg(nearest.vthis_dc().v));
-		_account->suggestMainDcId(nearest.vnearest_dc().v);
+		// A custom backend's datacenters are the ones baked into the build,
+		// and its config names the one to start from. Following a geo hint to
+		// some other id can strand the client on a datacenter that this
+		// deployment does not actually run.
+		if (!MTP::CustomDcConfigData()) {
+			_account->suggestMainDcId(nearest.vnearest_dc().v);
+		}
 		const auto nearestCountry = qs(nearest.vcountry());
 		if (getData()->country != nearestCountry) {
 			getData()->country = nearestCountry;
@@ -903,7 +909,7 @@ void Widget::backRequested() {
 		Core::App().domain().activate(parent);
 	} else {
 		moveToStep(
-			Ui::CreateChild<StartWidget>(this, _account, getData()),
+			Ui::CreateChild<QrWidget>(this, _account, getData()),
 			StackAction::Replace,
 			Animate::Back);
 	}
