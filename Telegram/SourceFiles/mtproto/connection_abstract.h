@@ -154,7 +154,7 @@ protected:
 
 	QString _debugId;
 
-	// first we always send fake MTPReq_pq to see if connection works at all
+	// first we always send fake MTPReq_pq_multi to see if connection works at all
 	// we send them simultaneously through TCP/HTTP/IPv4/IPv6 to choose the working one
 	[[nodiscard]] mtpBuffer preparePQFake(const MTPint128 &nonce) const;
 	[[nodiscard]] std::optional<MTPResPQ> readPQFakeReply(

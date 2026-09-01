@@ -144,8 +144,11 @@ gsl::span<const mtpPrime> AbstractConnection::parseNotSecureResponse(
 }
 
 mtpBuffer AbstractConnection::preparePQFake(const MTPint128 &nonce) const {
+	// req_pq_multi, not the deprecated req_pq: both answer with ResPQ, and it
+	// is what DcKeyCreator sends for the real handshake anyway. A server that
+	// only implements the current constructor drops the connection on req_pq.
 	return prepareNotSecurePacket(
-		MTPReq_pq(nonce),
+		MTPReq_pq_multi(nonce),
 		base::unixtime::mtproto_msg_id());
 }
 
