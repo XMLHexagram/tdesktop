@@ -1,0 +1,20 @@
+diff --git a/external/ranges/CMakeLists.txt b/external/ranges/CMakeLists.txt
+index dc7a8be..8d4453e 100644
+--- a/external/ranges/CMakeLists.txt
++++ b/external/ranges/CMakeLists.txt
+@@ -18,4 +18,13 @@ endif()
+ target_include_directories(external_ranges SYSTEM
+ INTERFACE
+     ${third_party_loc}/range-v3/include
+-)
+\ No newline at end of file
++)
++
++# range-v3's non-portable std forward declarations are compiled only under
++# Apple clang, and they spell the visibility attribute as _LIBCPP_TEMPLATE_VIS,
++# which newer libc++ (macOS 26+ SDKs) no longer defines. Every other toolchain
++# already skips that block, so opt out of it here as well.
++target_compile_definitions(external_ranges
++INTERFACE
++    META_NO_STD_FORWARD_DECLARATIONS
++)
