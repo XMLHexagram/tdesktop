@@ -37,6 +37,11 @@ git submodule update --init --recursive
 
 # 2. 本地补丁（见下节，缺任何一个都会构建失败）
 git -C cmake apply "$PWD/docs/local-patches/cmake-helpers-ranges-libcxx.patch"
+# 补丁改的是 submodule 的内容，让 git status 不再把它报成脏
+git config submodule.cmake.ignore dirty
+
+# 2b. 激活域名替换过滤器（见「域名替换过滤器」一节）
+./scripts/setup-domain-filter.sh
 
 # 3. 编译全部第三方库 —— 最耗时的一步
 ./Telegram/build/prepare/mac.sh silent
@@ -131,6 +136,48 @@ error: variable has incomplete type 'class _LIBCPP_TEMPLATE_VIS'
 会把改动冲掉。** 补丁已导出到
 [`local-patches/cmake-helpers-ranges-libcxx.patch`](local-patches/cmake-helpers-ranges-libcxx.patch)，
 重新 checkout submodule 后用上面第 2 步的命令重放。
+
+## 域名替换过滤器
+
+仓库里存的是上游的 `t.me`，工作区显示 `.telegram-domain` 里配置的域名（`blah.ing`）。
+提交时由 clean 过滤器还原成 `t.me`，因此与上游的 diff 保持干净。
+
+每个新克隆都要激活一次：
+
+```bash
+./scripts/setup-domain-filter.sh
+```
+
+哪些路径被过滤、用哪个驱动，声明在 `.gitattributes` 里。源码用引号 / `//`
+锚定的驱动（避免误伤 `context.messageStyle()` 这类把 `t.me` 当子串的标识符），
+`lang.strings` 用无锚定驱动。
+
+### 切换到不含过滤器脚本的分支会失败
+
+这是这套机制的固有副作用。过滤器配置存在 `.git/config` 里，而脚本
+（`scripts/smudge-domain.sh`、`clean-domain.sh`）和 `.telegram-domain` 是仓库内容。
+切到不含它们的分支（上游 `master`、旧 tag 等）时，git 会先删掉脚本、
+然后过滤器就找不到自己了：
+
+```text
+error: external filter 'scripts/smudge-domain.sh bare' failed
+fatal: Telegram/Resources/langs/lang.strings: smudge filter failed
+```
+
+checkout 会中途失败，之后连 `git status` 都跑不了。先摘掉配置再切：
+
+```bash
+for f in telegram-domain telegram-domain-strings; do
+    for k in smudge clean required; do git config --unset "filter.$f.$k"; done
+done
+git checkout <目标分支>
+# 切回来之后重新激活
+./scripts/setup-domain-filter.sh
+```
+
+> **快进合并不要用 checkout。** 把 `custom-backend` 并进 `dev` 这类快进操作，
+> 用 `git branch -f dev custom-backend` 直接更新 ref——不改动工作区，
+> 也就不会触发过滤器。
 
 ## Docker：Linux 侧编译验证
 
